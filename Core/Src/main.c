@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -15,46 +14,9 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
@@ -62,40 +24,52 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+  	
+	HAL_Init(); // Reset of all peripherals, init the Flash and Systick
+	SystemClock_Config(); //Configure the system clock
+	uint32_t debouncer = 0;
+	
+	RCC->AHBENR |= (RCC_AHBENR_GPIOAEN) | (RCC_AHBENR_GPIOCEN); // Enables the GPIOA/GPIOC clock in the RCC.
+		
+	// Configures GPIOC Pins 8 and 9 (ORANGE LED and GREEN LED)
+	GPIOC->MODER   |=  (1 << 16) | (1 << 18);
+	GPIOC->OTYPER  &= ~((1 << 8) | (1 << 9));
+	GPIOC->OSPEEDR &= ~((1 << 16) | (1 << 18));
+	GPIOC->PUPDR   &= ~((1 << 16) | (1 << 17) | (1 << 18) | (1 << 19));
+	
+	// Configures GPIOC Pins 6 and 7 (RED LED and BLUE LED)
+	GPIOC->MODER   |=  (1 << 12) | (1 << 14);
+	GPIOC->OTYPER  &= ~((1 << 6) | (1 << 7));
+	GPIOC->OSPEEDR &= ~((1 << 12) | (1 << 14));
+	GPIOC->PUPDR   &= ~((1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
+	
+	// Configures GPIOA Pin 0 (USER Button)
+	GPIOA->MODER   &= ~((1 << 0)|(1 << 1));
+	GPIOA->OSPEEDR &= ~(1 << 0);
+	GPIOA->PUPDR   &= ~(1 << 0);
+	GPIOA->PUPDR   |=  (1 << 1);
+	
+	//GPIOC->BSRR |= (1 << 6); // Start PC6 High.
+	GPIOC->BSRR |= (1 << 8); // Start PC8 High.
+	//GPIOC->BSRR |= (1 << 7); // Start PC7 High.
+	while (1) {
+		//HAL_Delay(200); // Delay 200ms
+		
+		debouncer = (debouncer << 1); // Always shift every loop iteration
+		if (GPIOA->IDR & 0x01) { // If input signal is set/high
+			debouncer |= 0x01; // Set lowest bit of bit-vector
+		}
+		// This code triggers only once when transitioning to steady high!
+		if (debouncer == 0x7FFFFFFF) {
+			// Toggle Pin PC6.
+			if(GPIOC->IDR & 0x40){
+				GPIOC->BSRR |= (1 << 22); // Resets State of PC6.
+			}
+			else{
+				GPIOC->BSRR |= (1 << 6); // Sets State of PC6.
+			}
+		}
+	}
 }
 
 /**
